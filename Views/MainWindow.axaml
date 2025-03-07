@@ -28,17 +28,22 @@
 
         <!-- FILE SELECTION -->
         <StackPanel Grid.Row="1" Grid.Column="0">
-            <ListBox Name="FileSelectionListBox" SelectionMode="Toggle">
-                <ListBoxItem>POST_Request.json</ListBoxItem>
-                <ListBoxItem>GET_Request.json</ListBoxItem>
-                <ListBoxItem>PUT_Request.json</ListBoxItem>
-            </ListBox>
+            <ItemsControl ItemsSource="{Binding RequestFiles}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Content="{Binding FileName}"
+                                Command="{Binding ((vm:MainWindowViewModel)DataContext).LoadFileCommand, 
+                                RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </StackPanel>
 
         <!-- GENERAL ACTIONS -->
         <Grid Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" ColumnDefinitions="150, *, 150">
             <Button Grid.Column="0" Content="Export" HorizontalAlignment="Left" VerticalAlignment="Center" />
-            <Button Grid.Column="2" Content="Save" HorizontalAlignment="Right" VerticalAlignment="Center" />
+            <Button Grid.Column="2" Content="Save" HorizontalAlignment="Right" VerticalAlignment="Center"
+                    Command="{Binding SaveCommand}" />
         </Grid>
 
         <!-- HEADERS, AUTHORIZATION AND BODY -->
@@ -58,7 +63,7 @@
                                             Margin="5"
                                             Content="X"
                                             Command="{Binding ((vm:MainWindowViewModel)DataContext).RemoveRequestHeaderCommand, 
-                                            RelativeSource={ RelativeSource FindAncestor, AncestorType=Window}}"
+                                            RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"
                                             CommandParameter="{Binding Id}" />
                                 </Grid>
                             </DataTemplate>
@@ -140,7 +145,8 @@
                 </TabItem>
                 <TabItem Header="Request Headers" FontSize="15">
                     <Panel>
-                        <DataGrid IsVisible="True" ColumnWidth="*" ItemsSource="{Binding OutputRequestHeaders}" IsReadOnly="True">
+                        <DataGrid IsVisible="True" ColumnWidth="*" ItemsSource="{Binding OutputRequestHeaders}"
+                                  IsReadOnly="True">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Key" Binding="{Binding Key}"></DataGridTextColumn>
                                 <DataGridTextColumn Header="Value" Binding="{Binding Value}"></DataGridTextColumn>
@@ -150,8 +156,8 @@
                 </TabItem>
                 <TabItem Header="Response Headers" FontSize="15">
                     <Panel>
-                        <DataGrid IsVisible="True" ColumnWidth="*" 
-                                  ItemsSource="{Binding ResponseHeaders}" 
+                        <DataGrid IsVisible="True" ColumnWidth="*"
+                                  ItemsSource="{Binding ResponseHeaders}"
                                   IsReadOnly="True">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Key" Binding="{Binding Key}"></DataGridTextColumn>

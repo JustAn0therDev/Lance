@@ -4,15 +4,19 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Lance.Models;
 
 namespace Lance.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
+    private const string REQUEST_FILES_DIRECTORY = "RequestFiles";
+
     [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(MakeRequestCommand))]
     private string _url = string.Empty;
 
@@ -39,6 +43,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty] private ObservableCollection<HttpHeaderViewModel> _outputRequestHeaders = new();
 
+    [ObservableProperty] private ObservableCollection<RequestFileViewModel> _requestFiles = new();
+
     private readonly string[] _contentHeaders =
     [
         "Allow", "Content-Disposition", "Content-Encoding", "Content-Language", "Content-Length", "Content-Location",
@@ -51,10 +57,62 @@ public partial class MainWindowViewModel : ViewModelBase
     public HttpMethod[] HttpMethods { get; } =
         [HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Patch, HttpMethod.Delete, HttpMethod.Options];
 
-    private void ClearFinalHeaders()
+    public MainWindowViewModel()
     {
-        ResponseHeaders.Clear();
-        OutputRequestHeaders.Clear();
+        LoadRequestFilesList();
+    }
+
+    private void LoadRequestFilesList()
+    {
+        RequestFiles.Clear();
+        if (!Directory.Exists(REQUEST_FILES_DIRECTORY))
+        {
+            Directory.CreateDirectory(REQUEST_FILES_DIRECTORY);
+        }
+
+        string[] requestFiles = Directory.GetFiles(REQUEST_FILES_DIRECTORY);
+
+        foreach (string requestFile in requestFiles)
+        {
+            RequestModel? requestModel = RequestModel.ReadFromFile(requestFile);
+
+            // TODO: this should be logged and treated as an error.
+            if (requestModel is null) continue;
+
+            // Most of this code is temporary and the files should not be all loaded into memory.
+            RequestFiles.Add(new RequestFileViewModel(requestFile.Split("\\")[1], requestModel));
+        }
+
+        if (RequestFiles.Count == 0)
+        {
+            string tempFileName = "New Request";
+            RequestFiles.Add(new RequestFileViewModel(tempFileName,
+                new RequestModel(tempFileName, SelectedMethod, Url, Body, InputRequestHeaders)));
+        }
+    }
+
+    [RelayCommand]
+    private void LoadFile()
+    {
+        RequestModel? requestModel = RequestModel.ReadFromFile(Path.Combine(REQUEST_FILES_DIRECTORY, "New Request.json"));
+
+        // TODO: this should be logged and treated as an error.
+        if (requestModel is null) return;
+
+        SelectedMethod = requestModel.Method;
+        Url = requestModel.Url;
+        Body = requestModel.Body;
+        InputRequestHeaders = new ObservableCollection<HttpHeaderViewModel>(requestModel.Headers);
+    }
+
+    [RelayCommand]
+    private async Task Save()
+    {
+        RequestModel requestModel = new(Path.Combine(REQUEST_FILES_DIRECTORY, "New Request"),
+            SelectedMethod, Url, Body,
+            InputRequestHeaders);
+
+        await requestModel.WriteToFileAsync();
     }
 
     [RelayCommand(CanExecute = nameof(CanMakeRequest))]
@@ -75,6 +133,12 @@ public partial class MainWindowViewModel : ViewModelBase
         await UpdateResponseData(response, stopwatch.Elapsed);
         SetFinalHeaders(response, request);
         SelectedResponseTabControlIndex = 0;
+    }
+
+    private void ClearFinalHeaders()
+    {
+        ResponseHeaders.Clear();
+        OutputRequestHeaders.Clear();
     }
 
     private void SetBodyWithHeaders(HttpRequestMessage request)
@@ -105,7 +169,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 request.Content.Headers.ContentType = new(header.Value);
                 break;
             case "Content-Length":
-                // TODO: This should also account for files. Those should have their sizes measured in bytes, not chars.
+                // TODO: This should also account for files. Those should be measured in bytes, not chars.
                 request.Content.Headers.ContentLength = header.Value.Length;
                 break;
         }

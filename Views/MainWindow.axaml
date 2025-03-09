@@ -28,12 +28,17 @@
 
         <!-- FILE SELECTION -->
         <StackPanel Grid.Row="1" Grid.Column="0">
-            <ItemsControl ItemsSource="{Binding RequestFiles}">
+            <ItemsControl ItemsSource="{Binding RequestModels}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Button Content="{Binding FileName}"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                HorizontalAlignment="Stretch"
                                 Command="{Binding ((vm:MainWindowViewModel)DataContext).LoadFileCommand, 
-                                RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}" />
+                                RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"
+                                CommandParameter="{Binding Id}" 
+                                />
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>

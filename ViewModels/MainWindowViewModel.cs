@@ -43,7 +43,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty] private ObservableCollection<HttpHeaderViewModel> _outputRequestHeaders = new();
 
-    [ObservableProperty] private ObservableCollection<RequestFileViewModel> _requestFiles = new();
+    [ObservableProperty] private ObservableCollection<RequestModel> _requestModels = new();
 
     private readonly string[] _contentHeaders =
     [
@@ -64,37 +64,25 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void LoadRequestFilesList()
     {
-        RequestFiles.Clear();
-        if (!Directory.Exists(REQUEST_FILES_DIRECTORY))
+        RequestModels.Clear();
+
+        RequestModels = new ObservableCollection<RequestModel>(RequestModel.ReadAllSaved());
+
+        if (RequestModels.Count != 0)
         {
-            Directory.CreateDirectory(REQUEST_FILES_DIRECTORY);
+            return;
         }
 
-        string[] requestFiles = Directory.GetFiles(REQUEST_FILES_DIRECTORY);
-
-        foreach (string requestFile in requestFiles)
-        {
-            RequestModel? requestModel = RequestModel.ReadFromFile(requestFile);
-
-            // TODO: this should be logged and treated as an error.
-            if (requestModel is null) continue;
-
-            // Most of this code is temporary and the files should not be all loaded into memory.
-            RequestFiles.Add(new RequestFileViewModel(requestFile.Split("\\")[1], requestModel));
-        }
-
-        if (RequestFiles.Count == 0)
-        {
-            string tempFileName = "New Request";
-            RequestFiles.Add(new RequestFileViewModel(tempFileName,
-                new RequestModel(tempFileName, SelectedMethod, Url, Body, InputRequestHeaders)));
-        }
+        const string tempFileName = "New Request";
+        RequestModels.Add(new RequestModel(tempFileName, SelectedMethod, Url, Body, InputRequestHeaders));
     }
 
     [RelayCommand]
-    private void LoadFile()
+    private void LoadFile(string fileName)
     {
-        RequestModel? requestModel = RequestModel.ReadFromFile(Path.Combine(REQUEST_FILES_DIRECTORY, "New Request.json"));
+        // Load from memory first, if exists. If not, read from disk.
+        RequestModel? requestModel = RequestModels.FirstOrDefault(f => f.FileName == fileName) ??
+                                     RequestModel.ReadFromFile(fileName);
 
         // TODO: this should be logged and treated as an error.
         if (requestModel is null) return;
@@ -108,7 +96,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task Save()
     {
-        RequestModel requestModel = new(Path.Combine(REQUEST_FILES_DIRECTORY, "New Request"),
+        RequestModel requestModel = new("New Request",
             SelectedMethod, Url, Body,
             InputRequestHeaders);
 

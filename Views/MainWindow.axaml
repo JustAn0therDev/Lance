@@ -12,6 +12,7 @@
 
     <Window.Resources>
         <localConverters:HttpMethodConverter x:Key="HttpMethodConverter" />
+		<localConverters:HttpStatusCodeToColorConverter x:Key="HttpStatusCodeToColorConverter"/>
     </Window.Resources>
 
     <Design.DataContext>
@@ -126,7 +127,7 @@
                 <TextBlock HorizontalAlignment="Left" Text="{Binding FormattedRequestTime}" />
                 <TextBlock
                     HorizontalAlignment="Right"
-                    Background="PaleGreen"
+                    Background="{Binding StatusCode, Converter={StaticResource HttpStatusCodeToColorConverter}}"
                     Foreground="Black"
                     Text="{Binding FormattedStatusCode}" />
             </Panel>
